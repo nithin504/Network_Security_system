@@ -1,0 +1,7 @@
+python-dotenv
+pandas
+numpy
+pymango
+certifi
+
+##-e . it refer tp setup.py and create all info
