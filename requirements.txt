@@ -5,5 +5,7 @@ pymongo
 certifi
 pymongo[srv]==3.6
 scikit-learn
+PyYAML
+
 
 ##-e . it refer tp setup.py and create all info
