@@ -1,7 +1,9 @@
 python-dotenv
 pandas
 numpy
-pymango
+pymongo
 certifi
+pymongo[srv]==3.6
+
 
 ##-e . it refer tp setup.py and create all info
