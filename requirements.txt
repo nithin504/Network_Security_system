@@ -3,9 +3,9 @@ pandas
 numpy
 pymongo
 certifi
-pymongo[srv]==3.6
+pymongo[srv]==3.12.3
 scikit-learn
 PyYAML
-
-
+mlflow==2.7
+dagshub
 ##-e . it refer tp setup.py and create all info
