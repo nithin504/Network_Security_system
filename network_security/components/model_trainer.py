@@ -1,11 +1,18 @@
-import sys,os
-from network_security.exception.exception import NetworkSecurityException
+import os
+import sys
+import numpy as np
+from network_security.exception.exception import NetworkSecurityException 
 from network_security.logging.logger import logging
-from network_security.entity.config_entity import ModelTrainerConfig
+
 from network_security.entity.artifact_entity import DataTransformationArtifact,ModelTrainerArtifact
-from network_security.utils.main_utils.utils import save_object,load_object,load_numpy_array_data,evaluate_models
-from network_security.utils.ml_utils.matric.classication_matric import get_classification_score
+from network_security.entity.config_entity import ModelTrainerConfig
+
+
+
 from network_security.utils.ml_utils.model.estimator import NetworkModel
+from network_security.utils.main_utils.utils import save_object,load_object
+from network_security.utils.main_utils.utils import load_numpy_array_data,evaluate_models
+from network_security.utils.ml_utils.matric.classification_matric import get_classification_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import r2_score
 from sklearn.neighbors import KNeighborsClassifier
@@ -15,21 +22,28 @@ from sklearn.ensemble import (
     GradientBoostingClassifier,
     RandomForestClassifier,
 )
-
 import mlflow
 from urllib.parse import urlparse
 
 import dagshub
+dagshub.init(repo_owner='nithin504', repo_name='Network_Security_system', mlflow=True)
+
+os.environ["MLFLOW_TRACKING_URI"]="https://dagshub.com/nithin504/Network_Security_system.mlflow"
+os.environ["MLFLOW_TRACKING_USERNAME"]="nithin504"
+os.environ["MLFLOW_TRACKING_PASSWORD"]="8a049ffa54576c2a301a7fbee0a57f7ad55fbdc5"
+
+
+
+
 
 class ModelTrainer:
-    def __init__(self, model_trainer_config: ModelTrainerConfig, data_transformation_artifact: DataTransformationArtifact):
+    def __init__(self,model_trainer_config:ModelTrainerConfig,data_transformation_artifact:DataTransformationArtifact):
         try:
-            self.model_trainer_config = model_trainer_config
-            self.data_transformation_artifact = data_transformation_artifact
-
+            self.model_trainer_config=model_trainer_config
+            self.data_transformation_artifact=data_transformation_artifact
         except Exception as e:
-            raise NetworkSecurityException(e, sys) 
-
+            raise NetworkSecurityException(e,sys)
+        
     def track_mlflow(self,best_model,classificationmetric):
         mlflow.set_registry_uri("https://dagshub.com/nithin504/Network_Security_system.mlflow")
         tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
@@ -51,10 +65,13 @@ class ModelTrainer:
                 # There are other ways to use the Model Registry, which depends on the use case,
                 # please refer to the doc for more information:
                 # https://mlflow.org/docs/latest/model-registry.html#api-workflow
-                mlflow.sklearn.log_model(best_model, "model", registered_model_name=best_model)
+                model_name = type(best_model).__name__ + "_model"
+                mlflow.sklearn.log_model(best_model, "model", registered_model_name=model_name)
             else:
                 mlflow.sklearn.log_model(best_model, "model")
 
+
+        
     def train_model(self,X_train,y_train,x_test,y_test):
         models = {
                 "Random Forest": RandomForestClassifier(verbose=1),
@@ -66,21 +83,21 @@ class ModelTrainer:
         params={
             "Decision Tree": {
                 'criterion':['gini', 'entropy', 'log_loss'],
-                'splitter':['best','random'],
-                'max_features':['sqrt','log2'],
+                # 'splitter':['best','random'],
+                # 'max_features':['sqrt','log2'],
             },
             "Random Forest":{
-                'criterion':['gini', 'entropy', 'log_loss'],
+                # 'criterion':['gini', 'entropy', 'log_loss'],
                 
-                'max_features':['sqrt','log2',None],
+                # 'max_features':['sqrt','log2',None],
                 'n_estimators': [8,16,32,128,256]
             },
             "Gradient Boosting":{
-                'loss':['log_loss', 'exponential'],
+                # 'loss':['log_loss', 'exponential'],
                 'learning_rate':[.1,.01,.05,.001],
                 'subsample':[0.6,0.7,0.75,0.85,0.9],
-                'criterion':['squared_error', 'friedman_mse'],
-                'max_features':['auto','sqrt','log2'],
+                # 'criterion':['squared_error', 'friedman_mse'],
+                # 'max_features':['auto','sqrt','log2'],
                 'n_estimators': [8,16,32,64,128,256]
             },
             "Logistic Regression":{},
@@ -133,25 +150,27 @@ class ModelTrainer:
                              )
         logging.info(f"Model trainer artifact: {model_trainer_artifact}")
         return model_trainer_artifact
-  
+
+        
     def initiate_model_trainer(self)->ModelTrainerArtifact:
         try:
             train_file_path = self.data_transformation_artifact.transformed_train_file_path
             test_file_path = self.data_transformation_artifact.transformed_test_file_path
 
             #loading training array and testing array
-            train_arr = load_numpy_array_data(train_file_path)
-            test_arr = load_numpy_array_data(test_file_path)
+            train_arr = np.array(load_numpy_array_data(train_file_path))
+            test_arr = np.array(load_numpy_array_data(test_file_path))
 
-            x_train, y_train, x_test, y_test = (
-                train_arr[:, :-1],
-                train_arr[:, -1],
-                test_arr[:, :-1],
-                test_arr[:, -1],
+            X_train, y_train, X_test, y_test = (
+                train_arr[:,:-1],
+                train_arr[:,-1],
+                test_arr[:,:-1],
+                test_arr[:,-1]
             )
 
-            model_trainer_artifact=self.train_model(x_train,y_train,x_test,y_test)
+            model_trainer_artifact=self.train_model(X_train,y_train,X_test,y_test)
             return model_trainer_artifact
-        
+
+            
         except Exception as e:
             raise NetworkSecurityException(e,sys)

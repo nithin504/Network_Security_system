@@ -8,4 +8,7 @@ scikit-learn
 PyYAML
 mlflow==2.7
 dagshub
+fastapi
+uvicorn
+python-multipart
 ##-e . it refer tp setup.py and create all info
